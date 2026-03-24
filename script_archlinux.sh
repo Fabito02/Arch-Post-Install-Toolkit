@@ -37,8 +37,8 @@ PKGS_PACMAN=(
     noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
     npm ffmpegthumbnailer nautilus-open-any-terminal plymouth fastfetch 
-    bibata-cursor-theme pamac bazaar fuse zen-browser lsfg-vk eden-git 
-    extension-manager refine supertuxkart libgda6
+    bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
+    extension-manager refine supertuxkart libgda6 geary
 )
 
 PKGS_FLATPAK=(
@@ -50,7 +50,7 @@ PKGS_FLATPAK=(
     org.nickvision.tubeconverter io.github.vikdevelop.SaveDesktop 
     net.sourceforge.wxEDID io.missioncenter.MissionCenter 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
-    io.github.tobagin.karere
+    io.github.tobagin.karere com.pojtinger.felicitas.Sessions
 )
 
 echo -e "${VERDE}Configurando Chaotic-AUR...${NC}"
