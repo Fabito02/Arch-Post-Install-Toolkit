@@ -51,6 +51,7 @@ PKGS_FLATPAK=(
     net.sourceforge.wxEDID io.missioncenter.MissionCenter 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
     io.github.tobagin.karere com.pojtinger.felicitas.Sessions
+    com.ticktick.TickTick
 )
 
 echo -e "${VERDE}Configurando Chaotic-AUR...${NC}"
