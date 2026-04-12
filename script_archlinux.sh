@@ -38,7 +38,7 @@ PKGS_PACMAN=(
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
     npm ffmpegthumbnailer nautilus-open-any-terminal plymouth fastfetch 
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
-    extension-manager refine supertuxkart libgda6 geary
+    extension-manager refine supertuxkart libgda6 geary github-cli endeavour
 )
 
 PKGS_FLATPAK=(
@@ -51,7 +51,6 @@ PKGS_FLATPAK=(
     net.sourceforge.wxEDID io.missioncenter.MissionCenter 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
     io.github.tobagin.karere com.pojtinger.felicitas.Sessions
-    github-cli
 )
 
 echo -e "${VERDE}Configurando Chaotic-AUR...${NC}"
