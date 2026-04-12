@@ -39,6 +39,7 @@ PKGS_PACMAN=(
     npm ffmpegthumbnailer nautilus-open-any-terminal plymouth fastfetch 
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli endeavour
+    ghostty-nautilus
 )
 
 PKGS_FLATPAK=(
