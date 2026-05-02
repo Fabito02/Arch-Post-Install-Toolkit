@@ -157,19 +157,11 @@ gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 gsettings set org.gnome.desktop.interface color-scheme 'default'
 gsettings set org.gnome.shell disable-extension-version-validation true
 
-echo -e "${VERDE}Instalando MoreWaita, Adwaita Colors e Lucidglyph...${NC}"
-cd "$CACHE"
-git clone https://github.com/somepaulo/MoreWaita.git
-cd MoreWaita && sudo ./install.sh
-gsettings set org.gnome.desktop.interface icon-theme 'MoreWaita'
+echo -e "${VERDE}Instalando Lucidglyph...${NC}"
 cd "$CACHE"
 git clone --depth 1 https://github.com/maximilionus/lucidglyph
 cd lucidglyph && sudo ./lucidglyph.sh install
 cd "$CACHE"
-git clone https://github.com/dpejoh/Adwaita-colors
-cd Adwaita-colors
-sudo ./setup -i
-sudo ./morewaita.sh
 
 echo -e "${VERDE}Configurando tamanho do cursor e tema Bibata Modern Classic${NC}"
 gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
