@@ -163,6 +163,11 @@ git clone --depth 1 https://github.com/maximilionus/lucidglyph
 cd lucidglyph && sudo ./lucidglyph.sh install
 cd "$CACHE"
 
+echo -e "${VERDE}Configurando KDE Connect...${NC}"
+sudo ufw allow 1714:1764/udp
+sudo ufw allow 1714:1764/tcp
+sudo ufw reload
+
 echo -e "${VERDE}Configurando tamanho do cursor e tema Bibata Modern Classic${NC}"
 gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 gsettings set org.gnome.desktop.interface cursor-size 20
