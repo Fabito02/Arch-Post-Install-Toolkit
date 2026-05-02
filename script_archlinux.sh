@@ -31,15 +31,15 @@ PKGS_PACMAN=(
     base-devel adw-gtk-theme discord btop steam gamemode mangohud ryujinx 
     android-tools scrcpy faugus-launcher pcsx2 snes9x dolphin-emu 
     cemu drawing telegram-desktop qbittorrent impression 
-    lact-libadwaita gparted dconf-editor gdm-settings zed ghostty 
+    lact gparted dconf-editor gdm-settings zed ghostty 
     nvidia-580xx-utils nvidia-580xx-dkms lib32-nvidia-580xx-utils 
     nvidia-580xx-settings linux-zen-headers firefoxpwa
     noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
-    npm ffmpegthumbnailer nautilus-open-any-terminal plymouth fastfetch 
+    npm ffmpegthumbnailer plymouth fastfetch 
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli endeavour
-    ghostty-nautilus
+    ghostty-nautilus valent-git
 )
 
 PKGS_FLATPAK=(
@@ -52,6 +52,11 @@ PKGS_FLATPAK=(
     net.sourceforge.wxEDID io.missioncenter.MissionCenter 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
     io.github.tobagin.karere com.pojtinger.felicitas.Sessions
+    io.github.nozwock.Packet
+)
+
+PKGS_AUR=(
+    gnome-shell-extension-valent-git
 )
 
 echo -e "${VERDE}Configurando Chaotic-AUR...${NC}"
@@ -64,11 +69,17 @@ if ! pacman -Qi chaotic-keyring &> /dev/null; then
     cd "$CACHE"
 fi
 
-echo -e "${VERDE}Atualizando sistema e instalando pacotes pacman...${NC}"
+echo -e "${VERDE}Atualizando sistema e instalando pacotes pacman e aur...${NC}"
 sudo pacman -Syu --needed --noconfirm "${PKGS_PACMAN[@]}"
 
+echo -e "${VERDE}Instalando pacotes Flatpak...${NC}"
+flatpak install flathub "${PKGS_FLATPAK[@]}" -y
+
+echo -e "${VERDE}Instalando pacotes AUR...${NC}"
+paru -S --needed --noconfirm "${PKGS_AUR[@]}"
+
 echo -e "${VERDE}Removendo aplicativos não utilizados...${NC}"
-pacman -Qq decibels showtime gnome-music epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null | sudo pacman -Rns - --noconfirm
+pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null | sudo pacman -Rns - --noconfirm
 
 if ls ~/.local/share/applications/org.gnome.Extensions.desktop > /dev/null; then
     echo "O Gnome Extensions já está oculto."
@@ -132,9 +143,6 @@ EOF
 
 echo -e "${VERDE}Habilitando serviços...${NC}"
 sudo systemctl enable --now switcheroo-control.service
-
-echo -e "${VERDE}Instalando pacotes Flatpak...${NC}"
-flatpak install flathub "${PKGS_FLATPAK[@]}" -y
 
 echo -e "${VERDE}Configurando temas Flatpak e overrides...${NC}"
 flatpak install org.gtk.Gtk3theme.adw-gtk3 org.gtk.Gtk3theme.adw-gtk3-dark -y
