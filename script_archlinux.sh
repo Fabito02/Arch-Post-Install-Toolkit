@@ -39,7 +39,7 @@ PKGS_PACMAN=(
     npm ffmpegthumbnailer plymouth fastfetch 
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli endeavour
-    ghostty-nautilus valent-git gnome-boxes
+    ghostty-nautilus valent-git gnome-boxes amberol
 )
 
 PKGS_FLATPAK=(
