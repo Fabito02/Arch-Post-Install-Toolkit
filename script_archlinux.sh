@@ -39,7 +39,7 @@ PKGS_PACMAN=(
     npm ffmpegthumbnailer plymouth fastfetch 
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli endeavour
-    ghostty-nautilus valent-git gnome-boxes amberol
+    ghostty-nautilus valent-git gnome-boxes amberol mangojuice
 )
 
 PKGS_FLATPAK=(
@@ -52,7 +52,7 @@ PKGS_FLATPAK=(
     net.sourceforge.wxEDID io.missioncenter.MissionCenter 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
     io.github.tobagin.karere com.pojtinger.felicitas.Sessions
-    io.github.nozwock.Packet
+    io.github.nozwock.Packet io.github.fabrialberio.pinapp
 )
 
 PKGS_AUR=(
