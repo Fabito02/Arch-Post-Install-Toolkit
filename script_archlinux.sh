@@ -24,7 +24,7 @@ mkdir -p "$CACHE"
 PKGS_PACMAN=(
     base-devel adw-gtk-theme discord btop steam gamemode mangohud ryujinx 
     android-tools scrcpy faugus-launcher pcsx2 snes9x dolphin-emu 
-    cemu drawing telegram-desktop qbittorrent impression flatpak
+    drawing telegram-desktop qbittorrent impression flatpak
     lact gparted dconf-editor gdm-settings zed ghostty ufw
     nvidia-580xx-utils nvidia-580xx-dkms lib32-nvidia-580xx-utils 
     nvidia-580xx-settings linux-zen-headers firefoxpwa
@@ -50,7 +50,7 @@ PKGS_FLATPAK=(
 )
 
 PKGS_AUR=(
-    gnome-shell-extension-valent-git
+    gnome-shell-extension-valent-git cemu-bin
 )
 
 echo -e "${VERDE}Configurando Chaotic-AUR...${NC}"
