@@ -172,13 +172,14 @@ echo -e "${VERDE}Configurando tamanho do cursor e tema Bibata Modern Classic${NC
 gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
 gsettings set org.gnome.desktop.interface cursor-size 20
 
-echo -e "${VERDE}Instalando Plymouth${NC}"
+echo -e "${VERDE}Instalando Plymouth e configurando intel_pstate${NC}"
 sudo sed -Ei '/^HOOKS=/ { /plymouth/! s/(udev)/\1 plymouth/ }' "$MK_CONF"
 
 if [ -d "$LOADER_DIR" ]; then
     for conf in "$LOADER_DIR"/*.conf; do
         [ -f "$conf" ] && grep -q "^options" "$conf" || continue
 
+        grep -q "intel_pstate=passive" "$conf"  || sudo sed -i '/^options/ s/$/ intel_pstate=passive/' "$conf"
         grep -q "quiet" "$conf"  || sudo sed -i '/^options/ s/$/ quiet/' "$conf"
         grep -q "splash" "$conf" || sudo sed -i '/^options/ s/$/ splash/' "$conf"
         
