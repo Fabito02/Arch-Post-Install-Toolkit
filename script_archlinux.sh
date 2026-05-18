@@ -17,7 +17,6 @@ CACHE="$HOME/.cache/script_arch"
 PAMAC_RULE_PATH="/etc/polkit-1/rules.d/99-pamac.rules"
 TEMPLATE_DIR=$(xdg-user-dir TEMPLATES)
 
-
 rm -rf "$CACHE"
 mkdir -p "$CACHE"
 
@@ -30,7 +29,7 @@ PKGS_PACMAN=(
     nvidia-580xx-settings linux-zen-headers firefoxpwa
     noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
-    npm ffmpegthumbnailer plymouth fastfetch 
+    npm ffmpegthumbnailer plymouth fastfetch zram-generator
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli endeavour
     ghostty-nautilus valent-git gnome-boxes amberol mangojuice
@@ -83,10 +82,12 @@ fi
 
 if [ -f "$HOME/.local/share/applications/org.gnome.Extensions.desktop" ]; then
     echo "O Gnome Extensions já está oculto."
-else
+elif [ -f "/usr/share/applications/org.gnome.Extensions.desktop" ]; then
     mkdir -p "$HOME/.local/share/applications/"
     cp /usr/share/applications/org.gnome.Extensions.desktop "$HOME/.local/share/applications/"
     echo "NoDisplay=true" >> "$HOME/.local/share/applications/org.gnome.Extensions.desktop"
+else
+    echo "Aviso: Atalho original do Extensions não encontrado. Pulando."
 fi
 
 echo -e "${VERDE}Configurando Ghostty...${NC}"
@@ -142,10 +143,34 @@ source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zs
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 EOF
 
-echo -e "${VERDE}Habilitando serviços...${NC}"
-sudo systemctl enable --now switcheroo-control.service
+echo -e "${VERDE}Criando arquivos modelo...${NC}"
 
-echo -e "${VERDE}Configurando temas Flatpak e overrides...${NC}"
+if [ -d "$TEMPLATE_DIR" ]; then
+    touch "$TEMPLATE_DIR/Documento de Texto.txt"
+    touch "$TEMPLATE_DIR/Documento Markdown.md"
+    
+    echo -e "#!/bin/bash\n\necho \"Hello, World!\"" > "$TEMPLATE_DIR/Script Bash.sh"
+    chmod +x "$TEMPLATE_DIR/Script Bash.sh"
+    
+    echo -e "#!/usr/bin/env python3\n\nprint(\"Hello, World!\")" > "$TEMPLATE_DIR/Script Python.py"
+    chmod +x "$TEMPLATE_DIR/Script Python.py"
+    
+    cat << 'EOF' > "$TEMPLATE_DIR/Atalho de Aplicativo.desktop"
+[Desktop Entry]
+Type=Application
+Name=Nome do App
+Exec=caminho_do_executavel
+Icon=caminho_do_icone
+Terminal=false
+Categories=Utility;
+EOF
+
+    echo " -> Modelos criados com sucesso em: $TEMPLATE_DIR"
+else
+    echo "Aviso: Pasta de modelos não encontrada pelo XDG. Pulando."
+fi
+
+echo -e "${VERDE}Configurando Interface e Temas...${NC}"
 flatpak install org.gtk.Gtk3theme.adw-gtk3 org.gtk.Gtk3theme.adw-gtk3-dark -y
 sudo flatpak override --filesystem=xdg-data/themes
 sudo flatpak override --filesystem=xdg-config/gtk-3.0
@@ -157,26 +182,15 @@ sudo flatpak mask org.gtk.Gtk3theme.adw-gtk3-dark
 gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3'
 gsettings set org.gnome.desktop.interface color-scheme 'default'
 gsettings set org.gnome.shell disable-extension-version-validation true
+gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
+gsettings set org.gnome.desktop.interface cursor-size 20
 
-echo -e "${VERDE}Instalando Lucidglyph...${NC}"
 cd "$CACHE"
 git clone --depth 1 https://github.com/maximilionus/lucidglyph
 cd lucidglyph && sudo ./lucidglyph.sh install
 cd "$CACHE"
 
-echo -e "${VERDE}Configurando UFW e KDE Connect...${NC}"
-sudo systemctl enable --now ufw.service
-
-sudo ufw allow 1714:1764/udp
-sudo ufw allow 1714:1764/tcp
-
-sudo ufw --force enable
-
-echo -e "${VERDE}Configurando tamanho do cursor e tema Bibata Modern Classic${NC}"
-gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
-gsettings set org.gnome.desktop.interface cursor-size 20
-
-echo -e "${VERDE}Instalando Plymouth e configurando intel_pstate${NC}"
+echo -e "${VERDE}Configurando Plymouth e intel_pstate${NC}"
 sudo sed -Ei '/^HOOKS=/ { /plymouth/! s/(udev)/\1 plymouth/ }' "$MK_CONF"
 
 if [ -d "$LOADER_DIR" ]; then
@@ -213,41 +227,28 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
+echo -e "${VERDE}Configurando ZRAM...${NC}"
+echo -e "[zram0]\nzram-size = ram\ncompression-algorithm = zstd" | sudo tee /etc/systemd/zram-generator.conf > /dev/null
 
-echo -e "${VERDE}Criando arquivos modelo...${NC}"
+echo -e "${VERDE}Configurando Segurança e Habilitando Serviços...${NC}"
+# UFW e KDE Connect
+sudo systemctl enable --now ufw.service
+sudo ufw allow 1714:1764/udp
+sudo ufw allow 1714:1764/tcp
+sudo ufw --force enable
 
-if [ -d "$TEMPLATE_DIR" ]; then
-    touch "$TEMPLATE_DIR/Documento de Texto.txt"
-    touch "$TEMPLATE_DIR/Documento Markdown.md"
-    
-    echo -e "#!/bin/bash\n\necho \"Hello, World!\"" > "$TEMPLATE_DIR/Script Bash.sh"
-    chmod +x "$TEMPLATE_DIR/Script Bash.sh"
-    
-    echo -e "#!/usr/bin/env python3\n\nprint(\"Hello, World!\")" > "$TEMPLATE_DIR/Script Python.py"
-    chmod +x "$TEMPLATE_DIR/Script Python.py"
-    
-    cat << 'EOF' > "$TEMPLATE_DIR/Atalho de Aplicativo.desktop"
-[Desktop Entry]
-Type=Application
-Name=Nome do App
-Exec=caminho_do_executavel
-Icon=caminho_do_icone
-Terminal=false
-Categories=Utility;
-EOF
-
-    echo " -> Modelos criados com sucesso em: $TEMPLATE_DIR"
-else
-    echo "Aviso: Pasta de modelos não encontrada pelo XDG. Pulando."
-fi
+# Outros Serviços
+sudo systemctl daemon-reload
+sudo systemctl start systemd-zram-setup@zram0.service
+sudo systemctl enable --now switcheroo-control.service
+sudo systemctl enable --now fstrim.timer
 
 echo -e "${VERDE}Limpando arquivos temporários...${NC}"
 rm -rf "$CACHE"
-
 echo -e "${VERDE}------------------------------------------${NC}"
 echo "Instalação finalizada."
 read -p "Deseja reiniciar o sistema? (s/n): " resposta
 
-if [[ "$resposta" =~ ^[Ss]$ ]]; then
+if [[ "$resposta" =~ ^[SsYy]$ ]]; then
     systemctl reboot
 fi
