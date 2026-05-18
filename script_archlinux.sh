@@ -2,11 +2,6 @@
 
 set -e
 
-VERDE='\033[0;32m'
-NC='\033[0m'
-MK_CONF="/etc/mkinitcpio.conf"
-LOADER_DIR="/boot/loader/entries"
-
 sudo -v
 
 if [ "$EUID" -eq 0 ]; then
@@ -14,24 +9,23 @@ if [ "$EUID" -eq 0 ]; then
   exit 1
 fi
 
+VERDE='\033[0;32m'
+NC='\033[0m'
+MK_CONF="/etc/mkinitcpio.conf"
+LOADER_DIR="/boot/loader/entries"
 CACHE="$HOME/.cache/script_arch"
+PAMAC_RULE_PATH="/etc/polkit-1/rules.d/99-pamac.rules"
+TEMPLATE_DIR=$(xdg-user-dir TEMPLATES)
+
+
 rm -rf "$CACHE"
 mkdir -p "$CACHE"
-
-PAMAC_RULE_PATH="/etc/polkit-1/rules.d/99-pamac.rules"
-
-AUTH_FILE="/etc/pam.d/system-auth"
-POLKIT_USR="/usr/lib/pam.d/polkit-1"
-POLKIT_ETC="/etc/pam.d/polkit-1"
-
-HOWDY_LINE="auth sufficient pam_howdy.so"
-UNIX_LINE="auth sufficient pam_unix.so try_first_pass likeauth nullok"
 
 PKGS_PACMAN=(
     base-devel adw-gtk-theme discord btop steam gamemode mangohud ryujinx 
     android-tools scrcpy faugus-launcher pcsx2 snes9x dolphin-emu 
-    cemu drawing telegram-desktop qbittorrent impression 
-    lact gparted dconf-editor gdm-settings zed ghostty 
+    cemu drawing telegram-desktop qbittorrent impression flatpak
+    lact gparted dconf-editor gdm-settings zed ghostty ufw
     nvidia-580xx-utils nvidia-580xx-dkms lib32-nvidia-580xx-utils 
     nvidia-580xx-settings linux-zen-headers firefoxpwa
     noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
@@ -79,13 +73,20 @@ echo -e "${VERDE}Instalando pacotes AUR...${NC}"
 paru -S --needed --noconfirm "${PKGS_AUR[@]}"
 
 echo -e "${VERDE}Removendo aplicativos não utilizados...${NC}"
-pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null | sudo pacman -Rns - --noconfirm
+APPS_INSTALADOS=$(pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null || true)
 
-if ls ~/.local/share/applications/org.gnome.Extensions.desktop > /dev/null; then
+if [ -n "$APPS_INSTALADOS" ]; then
+    echo "$APPS_INSTALADOS" | sudo pacman -Rns - --noconfirm
+else
+    echo " -> Nenhum dos aplicativos alvos está instalado. Pulando remoção."
+fi
+
+if [ -f "$HOME/.local/share/applications/org.gnome.Extensions.desktop" ]; then
     echo "O Gnome Extensions já está oculto."
 else
-    cp /usr/share/applications/org.gnome.Extensions.desktop ~/.local/share/applications/
-    echo "NoDisplay=true" >> ~/.local/share/applications/org.gnome.Extensions.desktop
+    mkdir -p "$HOME/.local/share/applications/"
+    cp /usr/share/applications/org.gnome.Extensions.desktop "$HOME/.local/share/applications/"
+    echo "NoDisplay=true" >> "$HOME/.local/share/applications/org.gnome.Extensions.desktop"
 fi
 
 echo -e "${VERDE}Configurando Ghostty...${NC}"
@@ -163,10 +164,13 @@ git clone --depth 1 https://github.com/maximilionus/lucidglyph
 cd lucidglyph && sudo ./lucidglyph.sh install
 cd "$CACHE"
 
-echo -e "${VERDE}Configurando KDE Connect...${NC}"
+echo -e "${VERDE}Configurando UFW e KDE Connect...${NC}"
+sudo systemctl enable --now ufw.service
+
 sudo ufw allow 1714:1764/udp
 sudo ufw allow 1714:1764/tcp
-sudo ufw reload
+
+sudo ufw --force enable
 
 echo -e "${VERDE}Configurando tamanho do cursor e tema Bibata Modern Classic${NC}"
 gsettings set org.gnome.desktop.interface cursor-theme 'Bibata-Modern-Classic'
@@ -189,43 +193,12 @@ else
     echo "Diretório $LOADER_DIR não encontrado. Pulando bootloader."
 fi
 
-echo "Regenerando initramfs..."
-sudo mkinitcpio -P
-
 echo -e "${VERDE}Instalando o tema Plymouth${NC}"
 paru -S --noconfirm plymouth-theme-arch-darwin
 sudo plymouth-set-default-theme -R arch-darwin
 
 echo -e "${VERDE}Habilitando NTSYNC (Para jogos Windows via Proton/Wine)${NC}"
 echo "ntsync" | sudo tee /etc/modules-load.d/ntsync.conf
-
-echo -e "${VERDE}Configurando o Howdy (para reconhecimento facial)${NC}"
-if [ -f "$AUTH_FILE" ]; then
-    if ! grep -q "pam_howdy.so" "$AUTH_FILE"; then
-        sudo cp "$AUTH_FILE" "${AUTH_FILE}.bak"
-        sudo sed -i "/#%PAM-1.0/a $HOWDY_LINE" "$AUTH_FILE"
-        echo "Sucesso: Howdy adicionado em $AUTH_FILE"
-    else
-        echo "Aviso: Howdy já existe no $AUTH_FILE"
-    fi
-fi
-
-if [ -f "$POLKIT_USR" ]; then
-    if [ ! -f "$POLKIT_ETC" ]; then
-        echo "Copiando base do polkit de /usr para /etc..."
-        sudo cp "$POLKIT_USR" "$POLKIT_ETC"
-    fi
-
-    if ! grep -q "auth sufficient pam_unix.so try_first_pass likeauth nullok" "$POLKIT_ETC"; then
-        sudo cp "$POLKIT_ETC" "${POLKIT_ETC}.bak"
-        sudo sed -i "/#%PAM-1.0/a $UNIX_LINE" "$POLKIT_ETC"
-        echo "Prevenção de desbloqueio unicamente pela face aplicada em $POLKIT_ETC"
-    else
-        echo "Aviso: Prevenção já aplicada em $POLKIT_ETC"
-    fi
-else
-    echo "Erro: Arquivo base $POLKIT_USR não encontrado!"
-fi
 
 echo -e "${VERDE}Configurando Polkit rule para Pamac${NC}"
 if grep -q '^wheel:' /etc/group; then USER_GROUP="wheel"; else USER_GROUP="sudo"; fi
@@ -239,6 +212,34 @@ polkit.addRule(function(action, subject) {
     }
 });
 EOF
+
+
+echo -e "${VERDE}Criando arquivos modelo...${NC}"
+
+if [ -d "$TEMPLATE_DIR" ]; then
+    touch "$TEMPLATE_DIR/Documento de Texto.txt"
+    touch "$TEMPLATE_DIR/Documento Markdown.md"
+    
+    echo -e "#!/bin/bash\n\necho \"Hello, World!\"" > "$TEMPLATE_DIR/Script Bash.sh"
+    chmod +x "$TEMPLATE_DIR/Script Bash.sh"
+    
+    echo -e "#!/usr/bin/env python3\n\nprint(\"Hello, World!\")" > "$TEMPLATE_DIR/Script Python.py"
+    chmod +x "$TEMPLATE_DIR/Script Python.py"
+    
+    cat << 'EOF' > "$TEMPLATE_DIR/Atalho de Aplicativo.desktop"
+[Desktop Entry]
+Type=Application
+Name=Nome do App
+Exec=caminho_do_executavel
+Icon=caminho_do_icone
+Terminal=false
+Categories=Utility;
+EOF
+
+    echo " -> Modelos criados com sucesso em: $TEMPLATE_DIR"
+else
+    echo "Aviso: Pasta de modelos não encontrada pelo XDG. Pulando."
+fi
 
 echo -e "${VERDE}Limpando arquivos temporários...${NC}"
 rm -rf "$CACHE"
