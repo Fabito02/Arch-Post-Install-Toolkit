@@ -92,7 +92,7 @@ PKGS_PACMAN=(
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
     npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
-    extension-manager refine supertuxkart libgda6 geary github-cli endeavour
+    extension-manager refine supertuxkart libgda6 geary github-cli 
     ghostty-nautilus valent-git gnome-boxes amberol mangojuice
 )
 
@@ -101,7 +101,7 @@ PKGS_FLATPAK=(
     org.gnome.gitlab.somas.Apostrophe org.vinegarhq.Sober 
     io.mrarm.mcpelauncher com.dec05eba.gpu_screen_recorder 
     com.cassidyjames.clairvoyant io.github.jeffshee.Hidamari 
-    com.vysp3r.ProtonPlus it.mijorus.gearlever com.github.tchx84.Flatseal 
+    it.mijorus.gearlever com.github.tchx84.Flatseal 
     org.nickvision.tubeconverter io.github.vikdevelop.SaveDesktop 
     io.missioncenter.MissionCenter io.github.nozwock.Packet
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
