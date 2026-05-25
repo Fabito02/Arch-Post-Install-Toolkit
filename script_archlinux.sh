@@ -2,8 +2,9 @@
 
 set -e
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
 NC='\033[0m'
 MK_CONF="/etc/mkinitcpio.conf"
 LOADER_DIR="/boot/loader/entries"
@@ -15,10 +16,9 @@ OPT_NVIDIA=false
 OPT_INTEL=false
 OPT_UNDERVOLT_INTEL=false
 OPT_LOW_RES=false
-VALID_INPUT=false
 
 help() {
-    echo -e "${GREEN}Uso do Script Pós-Instalação Arch Linux${NC}"
+    echo -e "${BLUE}Uso do Script Pós-Instalação Arch Linux${NC}"
     echo ""
     echo "Opções:"
     echo "  -n,  --nvidia             Instala os drivers proprietários da Nvidia"
@@ -35,7 +35,7 @@ if [ "$#" -eq 0 ]; then
     sleep 0.2
     clear
     
-    echo -e "${GREEN}Nenhum argumento fornecido. Iniciando modo interativo...${NC}"
+    echo -e "${BLUE}Nenhum argumento fornecido. Iniciando modo interativo...${NC}"
     echo "Responda com 's' para sim ou aperte Enter para pular (não)."
     echo "------------------------------------------------------------"
 
@@ -79,7 +79,7 @@ trap 'kill $(jobs -p)' EXIT
 # --nvidia
 NVIDIA_PKGS=()
 if [ "$OPT_NVIDIA" = true ]; then
-    echo -e "\n${GREEN}Configuração do Driver NVIDIA${NC}"
+    echo -e "\n${BLUE}Configuração do Driver NVIDIA${NC}"
     echo "1) Instalar Driver Atual (nvidia-dkms)"
     echo "2) Instalar Driver Legado (nvidia-580xx-dkms)"
     read -p "Escolha a versão do driver (1 ou 2): " nv_escolha
@@ -148,7 +148,7 @@ if [ "$OPT_UNDERVOLT_INTEL" = true ]; then
     PKGS_PACMAN+=(intel-undervolt)
 fi
 
-echo -e "${GREEN}Configurando Chaotic-AUR...${NC}"
+echo -e "${BLUE}Configurando Chaotic-AUR...${NC}"
 sudo pacman-key --recv-key 3056513887B78AEB
 sudo pacman-key --lsign-key 3056513887B78AEB
 sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
@@ -159,16 +159,16 @@ fi
 
 sudo pacman -Sy
 
-echo -e "${GREEN}Atualizando sistema e instalando pacotes pacman e aur...${NC}"
+echo -e "${BLUE}Atualizando sistema e instalando pacotes pacman e aur...${NC}"
 sudo pacman -Syu --needed --noconfirm "${PKGS_PACMAN[@]}"
 
-echo -e "${GREEN}Instalando pacotes Flatpak...${NC}"
+echo -e "${BLUE}Instalando pacotes Flatpak...${NC}"
 sudo flatpak install flathub "${PKGS_FLATPAK[@]}" -y
 
-echo -e "${GREEN}Instalando pacotes AUR...${NC}"
+echo -e "${BLUE}Instalando pacotes AUR...${NC}"
 paru -S --needed --noconfirm "${PKGS_AUR[@]}"
 
-echo -e "${GREEN}Removendo aplicativos não utilizados...${NC}"
+echo -e "${BLUE}Removendo aplicativos não utilizados...${NC}"
 INSTALLED=$(pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null || true)
 
 if [ -n "$INSTALLED" ]; then
@@ -187,7 +187,7 @@ else
     echo "Aviso: Atalho original do Extensions não encontrado. Pulando."
 fi
 
-echo -e "${GREEN}Configurando Ghostty...${NC}"
+echo -e "${BLUE}Configurando Ghostty...${NC}"
 mkdir -p "$HOME/.config/ghostty"
 cat << 'EOF' > "$HOME/.config/ghostty/config"
 theme = light:Adwaita,dark:Adwaita Dark
@@ -209,7 +209,7 @@ revealer.raised.top-bar {
 }
 EOF
 
-echo -e "${GREEN}Configurando ZSH (Pure, History, Plugins)...${NC}"
+echo -e "${BLUE}Configurando ZSH (Pure, History, Plugins)...${NC}"
 sudo chsh -s "$(which zsh)" "$USER"
 mkdir -p "$HOME/.zsh"
 if [ ! -d "$HOME/.zsh/pure" ]; then
@@ -240,7 +240,7 @@ source /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zs
 source /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh
 EOF
 
-echo -e "${GREEN}Criando arquivos modelo...${NC}"
+echo -e "${BLUE}Criando arquivos modelo...${NC}"
 
 if [ -d "$TEMPLATE_DIR" ]; then
     touch "$TEMPLATE_DIR/Documento de Texto.txt"
@@ -267,7 +267,7 @@ else
     echo "Aviso: Pasta de modelos não encontrada pelo XDG. Pulando."
 fi
 
-echo -e "${GREEN}Configurando Interface e Temas...${NC}"
+echo -e "${BLUE}Configurando Interface e Temas...${NC}"
 flatpak install org.gtk.Gtk3theme.adw-gtk3 org.gtk.Gtk3theme.adw-gtk3-dark -y
 sudo flatpak override --filesystem=xdg-data/themes
 sudo flatpak override --filesystem=xdg-config/gtk-3.0
@@ -291,7 +291,7 @@ git clone --depth 1 https://github.com/maximilionus/lucidglyph
 cd lucidglyph && sudo ./lucidglyph.sh install
 cd "$CACHE"
 
-echo -e "${GREEN}Configurando Plymouth e Parâmetros do Kernel${NC}"
+echo -e "${BLUE}Configurando Plymouth e Parâmetros do Kernel${NC}"
 sudo sed -Ei '/^HOOKS=/ { /plymouth/! s/(udev)/\1 plymouth/ }' "$MK_CONF"
 
 if [ -d "$LOADER_DIR" ]; then
@@ -310,14 +310,14 @@ else
     echo "Diretório $LOADER_DIR não encontrado. Pulando bootloader."
 fi
 
-echo -e "${GREEN}Instalando o tema Plymouth${NC}"
+echo -e "${BLUE}Instalando o tema Plymouth${NC}"
 paru -S --noconfirm plymouth-theme-arch-darwin
 sudo plymouth-set-default-theme -R arch-darwin
 
-echo -e "${GREEN}Habilitando NTSYNC (Para jogos Windows via Proton/Wine)${NC}"
+echo -e "${BLUE}Habilitando NTSYNC (Para jogos Windows via Proton/Wine)${NC}"
 echo "ntsync" | sudo tee /etc/modules-load.d/ntsync.conf
 
-echo -e "${GREEN}Configurando Polkit rule para Pamac${NC}"
+echo -e "${BLUE}Configurando Polkit rule para Pamac${NC}"
 if grep -q '^wheel:' /etc/group; then USER_GROUP="wheel"; else USER_GROUP="sudo"; fi
 
 sudo tee $PAMAC_RULE_PATH > /dev/null <<EOF
@@ -330,11 +330,11 @@ polkit.addRule(function(action, subject) {
 });
 EOF
 
-echo -e "${GREEN}Configurando ZRAM...${NC}"
+echo -e "${BLUE}Configurando ZRAM...${NC}"
 echo -e "[zram0]\nzram-size = ram\ncompression-algorithm = zstd" | sudo tee /etc/systemd/zram-generator.conf > /dev/null
 
 if [ -n "$UV_VAL" ]; then
-    echo -e "${GREEN}Aplicando arquivo de configuração do Undervolt...${NC}"
+    echo -e "${BLUE}Aplicando arquivo de configuração do Undervolt...${NC}"
     sudo cp /etc/intel-undervolt.conf /etc/intel-undervolt.conf.bak
     sudo sed -i "s/^undervolt 0.*/undervolt 0 'CPU' ${UV_VAL}/" /etc/intel-undervolt.conf
     sudo sed -i "s/^undervolt 2.*/undervolt 2 'CPU Cache' ${UV_VAL}/" /etc/intel-undervolt.conf
@@ -342,19 +342,12 @@ if [ -n "$UV_VAL" ]; then
     sudo intel-undervolt apply
 fi
 
-echo -e "${GREEN}Configurando Protocolo TCP BBR para melhor desempenho de Rede...${NC}"
-echo "tcp_bbr" | sudo tee /etc/modules-load.d/bbr.conf
+echo -e "${BLUE}Configurando Protocolo TCP BBR para melhor desempenho de Rede...${NC}"
+echo "tcp_bbr" | sudo tee /etc/modules-load.d/bbr.conf > /dev/null
+echo -e "net.core.default_qdisc=fq\nnet.ipv4.tcp_congestion_control=bbr" | sudo tee /etc/sysctl.d/bbr.conf > /dev/null
+echo " -> Módulo tcp_bbr e configurações sysctl aplicadas com sucesso."
 
-if ! grep -q "net.ipv4.tcp_congestion_control = bbr" /etc/sysctl.conf; then
-    echo -e "\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_congestion_control = bbr" | sudo tee -a /etc/sysctl.conf
-    echo "BBR adicionado ao sysctl.conf."
-else
-    echo "BBR já está presente no sysctl.conf."
-fi
-
-sudo sysctl --system
-
-echo -e "${GREEN}Configurando Segurança e Habilitando Serviços...${NC}"
+echo -e "${BLUE}Configurando Segurança e Habilitando Serviços...${NC}"
 # UFW e KDE Connect
 sudo systemctl enable --now ufw.service
 sudo ufw allow 1714:1764/udp
@@ -367,10 +360,10 @@ sudo systemctl enable --now switcheroo-control.service
 sudo systemctl enable --now tuned
 sudo systemctl enable --now fstrim.timer
 
-echo -e "${GREEN}Limpando arquivos temporários...${NC}"
+echo -e "${BLUE}Limpando arquivos temporários...${NC}"
 rm -rf "$CACHE"
-echo -e "${GREEN}------------------------------------------${NC}"
-echo "Instalação finalizada."
+echo -e "${BLUE}------------------------------------------${NC}"
+echo -e "${GREEN}Instalação finalizada. Algumas funções e otimizações entrarão em vigor após reinício.${NC}"
 read -p "Deseja reiniciar o sistema? (s/n): " resposta
 
 if [[ "$resposta" =~ ^[SsYy]$ ]]; then
