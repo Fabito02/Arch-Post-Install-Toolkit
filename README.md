@@ -36,3 +36,4 @@ Execute com as opções desejadas:
 > Este projeto está em estágio **funcional**. Embora as principais rotinas de automação estejam testadas, recomenda-se realizar um backup do sistema antes de aplicar configurações de hardware como undervolt ou alterações no bootloader. Não sou responsável por eventuais danos ao seu hardware ou software.
 > 
 > Algumas configurações e escolhas foram pensadas com foco em meu workflow pessoal. Recomenda-se que seja feita uma revisão, para evitar possíveis bloatwares ou ajustes indesejados ao seu sistema.
+> Esse script assume que você esteja utilizando uma instalação com systemd-boot, Gnome, e UKI (Unified Kernel Image) desabilitado.
