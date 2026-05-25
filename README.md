@@ -29,7 +29,7 @@ Execute com as opções desejadas:
 ./script_archlinux.sh -n -i -lr      # Instala drivers Nvidia, otimiza Intel e aplica low-res
 ./script_archlinux.sh -uv            # Aplica undervolt (requer testes prévios)
 ./script_archlinux.sh -h             # Mostra todas as opções disponíveis
-
+./script_archlinux.sh                # Instalação interativa
 ```
 
 > [!NOTE]
