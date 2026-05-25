@@ -15,6 +15,7 @@ OPT_NVIDIA=false
 OPT_INTEL=false
 OPT_UNDERVOLT_INTEL=false
 OPT_LOW_RES=false
+VALID_INPUT=false
 
 help() {
     echo -e "${GREEN}Uso do Script Pós-Instalação Arch Linux${NC}"
@@ -30,17 +31,40 @@ help() {
     exit 0
 }
 
-while [[ "$#" -gt 0 ]]; do
-    case $1 in
-        -n|--nvidia) OPT_NVIDIA=true ;;
-        -i|--intel) OPT_INTEL=true ;;
-        -uv|--undervolt-intel) OPT_UNDERVOLT_INTEL=true ;;
-        -lr|--low-res) OPT_LOW_RES=true ;;
-        -h|--help) help ;;
-        *) echo "Erro: Parâmetro desconhecido: $1"; exit 1 ;;
-    esac
-    shift
-done
+if [ "$#" -eq 0 ]; then
+    sleep 0.2
+    clear
+    
+    echo -e "${GREEN}Nenhum argumento fornecido. Iniciando modo interativo...${NC}"
+    echo "Responda com 's' para sim ou aperte Enter para pular (não)."
+    echo "------------------------------------------------------------"
+
+    read -p " -> Instalar drivers proprietários da Nvidia? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_NVIDIA=true
+
+    read -p " -> Aplicar otimizações para processadores Intel? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_INTEL=true
+
+    read -p " -> Aplicar undervolt para processadores Intel? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_UNDERVOLT_INTEL=true
+
+    read -p " -> Ajustar tamanho do cursor e UI para telas menores? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_LOW_RES=true
+
+    echo -e "------------------------------------------------------------\n"
+else
+    while [[ "$#" -gt 0 ]]; do
+        case $1 in
+            -n|--nvidia) OPT_NVIDIA=true ;;
+            -i|--intel) OPT_INTEL=true ;;
+            -uv|--undervolt-intel) OPT_UNDERVOLT_INTEL=true ;;
+            -lr|--low-res) OPT_LOW_RES=true ;;
+            -h|--help) help ;;
+            *) echo -e "${RED}Erro: Parâmetro desconhecido: $1${NC}"; exit 1 ;;
+        esac
+        shift
+    done
+fi
 
 if [ "$EUID" -eq 0 ]; then
   echo "Execute o script como usuário comum."
@@ -48,6 +72,9 @@ if [ "$EUID" -eq 0 ]; then
 fi
 
 sudo -v
+
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+trap 'kill $(jobs -p)' EXIT
 
 # --nvidia
 NVIDIA_PKGS=()
@@ -87,8 +114,8 @@ PKGS_PACMAN=(
     base-devel adw-gtk-theme discord btop steam gamemode mangohud ryujinx 
     android-tools scrcpy faugus-launcher pcsx2 snes9x dolphin-emu 
     drawing telegram-desktop qbittorrent impression flatpak firefoxpwa
-    lact gparted dconf-editor gdm-settings zed ghostty ufw linux-zen-headers
-    noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
+    lact gparted dconf-editor gdm-settings zed ghostty ufw linux-zen 
+    linux-zen-headers noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
     npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
@@ -110,7 +137,7 @@ PKGS_FLATPAK=(
 )
 
 PKGS_AUR=(
-    gnome-shell-extension-valent-git cemu-bin
+    gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git
 )
 
 if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
@@ -122,20 +149,21 @@ if [ "$OPT_UNDERVOLT_INTEL" = true ]; then
 fi
 
 echo -e "${GREEN}Configurando Chaotic-AUR...${NC}"
-sudo pacman -S git --noconfirm
+sudo pacman-key --recv-key 3056513887B78AEB
+sudo pacman-key --lsign-key 3056513887B78AEB
+sudo pacman -U --noconfirm 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-keyring.pkg.tar.zst' 'https://cdn-mirror.chaotic.cx/chaotic-aur/chaotic-mirrorlist.pkg.tar.zst'
 
-if ! pacman -Qi chaotic-keyring &> /dev/null; then
-    cd "$CACHE"
-    git clone https://github.com/SharafatKarim/chaotic-AUR-installer.git
-    cd chaotic-AUR-installer && chmod +x install.bash && sudo ./install.bash
-    cd "$CACHE"
+if ! grep -q "\[chaotic-aur\]" /etc/pacman.conf; then
+    echo -e "\n[chaotic-aur]\nInclude = /etc/pacman.d/chaotic-mirrorlist" | sudo tee -a /etc/pacman.conf
 fi
+
+sudo pacman -Sy
 
 echo -e "${GREEN}Atualizando sistema e instalando pacotes pacman e aur...${NC}"
 sudo pacman -Syu --needed --noconfirm "${PKGS_PACMAN[@]}"
 
 echo -e "${GREEN}Instalando pacotes Flatpak...${NC}"
-flatpak install flathub "${PKGS_FLATPAK[@]}" -y
+sudo flatpak install flathub "${PKGS_FLATPAK[@]}" -y
 
 echo -e "${GREEN}Instalando pacotes AUR...${NC}"
 paru -S --needed --noconfirm "${PKGS_AUR[@]}"
@@ -169,7 +197,7 @@ window-height = 24
 window-width = 70
 gtk-titlebar-style = tabs
 gtk-wide-tabs = false
-gtk-custom-css = ./styles.css
+gtk-custom-css = ~/.config/ghostty/styles.css
 background-opacity = 1
 alpha-blending = native
 EOF
@@ -314,6 +342,18 @@ if [ -n "$UV_VAL" ]; then
     sudo intel-undervolt apply
 fi
 
+echo -e "${GREEN}Configurando Protocolo TCP BBR para melhor desempenho de Rede...${NC}"
+echo "tcp_bbr" | sudo tee /etc/modules-load.d/bbr.conf
+
+if ! grep -q "net.ipv4.tcp_congestion_control = bbr" /etc/sysctl.conf; then
+    echo -e "\nnet.core.default_qdisc = fq\nnet.ipv4.tcp_congestion_control = bbr" | sudo tee -a /etc/sysctl.conf
+    echo "BBR adicionado ao sysctl.conf."
+else
+    echo "BBR já está presente no sysctl.conf."
+fi
+
+sudo sysctl --system
+
 echo -e "${GREEN}Configurando Segurança e Habilitando Serviços...${NC}"
 # UFW e KDE Connect
 sudo systemctl enable --now ufw.service
@@ -323,7 +363,6 @@ sudo ufw --force enable
 
 # Outros Serviços
 sudo systemctl daemon-reload
-sudo systemctl start systemd-zram-setup@zram0.service
 sudo systemctl enable --now switcheroo-control.service
 sudo systemctl enable --now tuned
 sudo systemctl enable --now fstrim.timer
