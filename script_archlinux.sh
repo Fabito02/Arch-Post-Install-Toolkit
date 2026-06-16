@@ -132,8 +132,7 @@ PKGS_FLATPAK=(
     org.nickvision.tubeconverter io.github.vikdevelop.SaveDesktop 
     io.missioncenter.MissionCenter io.github.nozwock.Packet
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
-    io.github.tobagin.karere com.pojtinger.felicitas.Sessions
-    io.github.fabrialberio.pinapp
+    com.pojtinger.felicitas.Sessions io.github.fabrialberio.pinapp
 )
 
 PKGS_AUR=(
@@ -200,12 +199,24 @@ gtk-wide-tabs = false
 gtk-custom-css = ~/.config/ghostty/styles.css
 background-opacity = 1
 alpha-blending = native
+background-opacity = 0
 EOF
 
 cat << 'EOF' > "$HOME/.config/ghostty/styles.css"
-revealer.raised.top-bar { 
-    background: alpha(@view_bg_color, 1); 
-    box-shadow: none; 
+/* Habilita suporte ao tema tinted da extensão GNOME ChromaLeon */
+@import url("/home/fabito02/.config/gtk-4.0/custom-accent.css");
+
+window,
+window.background,
+main,
+#terminal-container,
+revealer.raised.top-bar,
+headerbar,
+.titlebar { 
+    background: @view_bg_color;
+    background-color: @view_bg_color;
+    box-shadow: none;
+    border: none;
 }
 EOF
 
