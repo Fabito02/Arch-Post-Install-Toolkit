@@ -206,17 +206,19 @@ cat << 'EOF' > "$HOME/.config/ghostty/styles.css"
 /* Habilita suporte ao tema tinted da extensão GNOME ChromaLeon */
 @import url("/home/fabito02/.config/gtk-4.0/custom-accent.css");
 
-window,
-window.background,
-main,
-#terminal-container,
-revealer.raised.top-bar,
-headerbar,
-.titlebar { 
+window{ 
     background: @view_bg_color;
-    background-color: @view_bg_color;
+}
+
+revealer.raised.top-bar {
     box-shadow: none;
     border: none;
+}
+
+scrolledwindow > widget > tabgrid,
+toolbarview > overlay,
+windowhandle {
+    background-color: @view_bg_color;
 }
 EOF
 
