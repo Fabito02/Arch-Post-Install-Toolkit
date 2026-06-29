@@ -120,7 +120,7 @@ PKGS_PACMAN=(
     npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli 
-    ghostty-nautilus valent-git gnome-boxes amberol mangojuice
+    ghostty-nautilus valent-git gnome-boxes amberol mangojuice fractal
 )
 
 PKGS_FLATPAK=(
@@ -136,7 +136,7 @@ PKGS_FLATPAK=(
 )
 
 PKGS_AUR=(
-    gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git
+    gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git mixtapes-git
 )
 
 if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
