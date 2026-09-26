@@ -112,8 +112,8 @@ mkdir -p "$CACHE"
 
 PKGS_PACMAN=(
     base-devel adw-gtk-theme discord btop steam gamemode mangohud ryujinx 
-    android-tools scrcpy faugus-launcher snes9x dolphin-emu drawing 
-    qbittorrent impression flatpak firefoxpwa telegram-desktop 
+    android-tools scrcpy faugus-launcher snes9x dolphin-emu 
+    qbittorrent impression flatpak firefoxpwa firefox telegram-desktop 
     lact gparted dconf-editor gdm-settings zed ghostty ufw linux-zen 
     linux-zen-headers noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions 
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions 
@@ -121,7 +121,7 @@ PKGS_PACMAN=(
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git 
     extension-manager refine supertuxkart libgda6 geary github-cli 
     ghostty-nautilus valent-git gnome-boxes amberol mangojuice fractal newsflash
-    cups cups-pdf cups-filters 
+    cups cups-pdf cups-filters rmg
 )
 
 PKGS_FLATPAK=(
@@ -131,7 +131,7 @@ PKGS_FLATPAK=(
     com.cassidyjames.clairvoyant io.github.jeffshee.Hidamari 
     it.mijorus.gearlever com.github.tchx84.Flatseal 
     org.nickvision.tubeconverter io.github.vikdevelop.SaveDesktop 
-    io.missioncenter.MissionCenter io.github.nozwock.Packet
+    io.missioncenter.MissionCenter net.donnybeelo.Convey 
     io.github.diegopvlk.Cine io.github.amit9838.mousam 
     com.pojtinger.felicitas.Sessions io.github.fabrialberio.pinapp
 )
@@ -330,6 +330,9 @@ sudo plymouth-set-default-theme -R arch-darwin
 
 echo -e "${BLUE}Habilitando NTSYNC (Para jogos Windows via Proton/Wine)${NC}"
 echo "ntsync" | sudo tee /etc/modules-load.d/ntsync.conf
+
+echo -e "${BLUE}Configurando recurso de reconhecimento facial (Gaze)${NC}"
+curl -fsSL https://gaze.gundulabs.com/install.sh | sh
 
 echo -e "${BLUE}Configurando Polkit rule para Pamac${NC}"
 if grep -q '^wheel:' /etc/group; then USER_GROUP="wheel"; else USER_GROUP="sudo"; fi
