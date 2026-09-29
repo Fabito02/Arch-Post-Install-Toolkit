@@ -179,7 +179,7 @@ echo -e "\n${BLUE}» Pacotes AUR${NC}"
 paru -S --needed --noconfirm "${PKGS_AUR[@]}"
 
 echo -e "\n${BLUE}» Removendo aplicativos não utilizados${NC}"
-INSTALLED=$(pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-user-docs gnome-tour htop 2>/dev/null || true)
+INSTALLED=$(pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-system-monitor gnome-user-docs gnome-tour htop 2>/dev/null || true)
 
 if [ -n "$INSTALLED" ]; then
     echo "$INSTALLED" | sudo pacman -Rns - --noconfirm
@@ -357,7 +357,7 @@ sudo ufw --force enable > /dev/null 2>&1
 sudo sed -i 's/.*SystemMaxUse=.*/SystemMaxUse=100M/' /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
-sudo systemctl enable --now switcheroo-control.service tuned fstrim.timer cups systemd-oomd.service paccache.timer > /dev/null 2>&1
+sudo systemctl enable --now switcheroo-control.service tuned bluetooth fstrim.timer cups systemd-oomd.service paccache.timer > /dev/null 2>&1
 
 cat << 'EOF' | sudo tee /etc/sysctl.d/99-kernel-tweaks.conf > /dev/null
 kernel.nmi_watchdog=0
