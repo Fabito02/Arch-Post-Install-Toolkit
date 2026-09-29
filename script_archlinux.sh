@@ -357,13 +357,7 @@ sudo ufw --force enable > /dev/null 2>&1
 sudo sed -i 's/.*SystemMaxUse=.*/SystemMaxUse=100M/' /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
 
-sudo systemctl daemon-reload
-sudo systemctl enable --now switcheroo-control.service > /dev/null 2>&1
-sudo systemctl enable --now tuned > /dev/null 2>&1
-sudo systemctl enable --now fstrim.timer > /dev/null 2>&1
-sudo systemctl enable --now cups > /dev/null 2>&1
-sudo systemctl enable --now systemd-oomd.service > /dev/null 2>&1
-sudo systemctl enable --now paccache.timer > /dev/null 2>&1
+sudo systemctl enable --now switcheroo-control.service tuned fstrim.timer cups systemd-oomd.service paccache.timer > /dev/null 2>&1
 
 cat << 'EOF' | sudo tee /etc/sysctl.d/99-kernel-tweaks.conf > /dev/null
 kernel.nmi_watchdog=0
