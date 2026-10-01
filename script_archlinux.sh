@@ -125,7 +125,7 @@ PKGS_PACMAN=(
     android-tools scrcpy faugus-launcher snes9x dolphin-emu
     qbittorrent impression flatpak firefoxpwa firefox telegram-desktop
     lact gparted dconf-editor gdm-settings zed ghostty ufw linux-zen
-    linux-zen-headers linux linux-headers noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions
+    linux-zen-headers noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions
     switcheroo-control zsh-syntax-highlighting zsh-autosuggestions
     npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git
@@ -148,6 +148,7 @@ PKGS_FLATPAK=(
 
 PKGS_AUR=(
     gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git mixtapes-git pcsx2-latest-bin
+    pacman-hook-kernel-install
 )
 
 if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
@@ -176,7 +177,7 @@ echo -e "\n${BLUE}» Pacotes Flatpak${NC}"
 sudo flatpak install flathub "${PKGS_FLATPAK[@]}" -y
 
 echo -e "\n${BLUE}» Pacotes AUR${NC}"
-paru -S --needed --noconfirm "${PKGS_AUR[@]}"
+paru -Syu --needed --noconfirm "${PKGS_AUR[@]}"
 
 echo -e "\n${BLUE}» Removendo aplicativos não utilizados${NC}"
 INSTALLED=$(pacman -Qq decibels showtime gnome-music gnome-console epiphany gnome-software gnome-weather yelp gnome-system-monitor gnome-user-docs gnome-tour htop 2>/dev/null || true)
@@ -376,12 +377,16 @@ else
     EDID_ITEM=""
 fi
 
-echo -e "\n${BLUE}» Bootloader (migração para UKI e Dracut)${NC}"
+echo -e "\n${BLUE}» Bootloader (UKI via kernel-install + ukify + Dracut)${NC}"
 
 if pacman -Qs mkinitcpio > /dev/null; then
     echo "  · Removendo mkinitcpio"
     sudo pacman -Rns --noconfirm mkinitcpio
 fi
+
+sudo mkdir -p /etc/pacman.d/hooks
+sudo ln -sf /dev/null /etc/pacman.d/hooks/90-dracut-install.hook
+sudo ln -sf /dev/null /etc/pacman.d/hooks/60-dracut-remove.hook
 
 sudo mkdir -p /etc/kernel /etc/dracut.conf.d
 
@@ -389,14 +394,12 @@ CMDLINE="quiet splash"
 [ "$OPT_INTEL" = true ] && CMDLINE="intel_pstate=passive $CMDLINE"
 [ -n "$EDID_CMDLINE" ] && CMDLINE="$CMDLINE $EDID_CMDLINE"
 
-# Dracut gera o UKI e lê a linha de comando via kernel_cmdline,
-# não via /etc/kernel/cmdline.
-echo "kernel_cmdline=\"$CMDLINE\"" | sudo tee /etc/dracut.conf.d/cmdline.conf > /dev/null
+echo "$CMDLINE" | sudo tee /etc/kernel/cmdline > /dev/null
 
 cat << 'EOF' | sudo tee /etc/kernel/install.conf > /dev/null
 layout=uki
 initrd_generator=dracut
-uki_generator=dracut
+uki_generator=ukify
 EOF
 
 DRIVERS=""
@@ -404,7 +407,6 @@ DRIVERS=""
 [ "$OPT_NVIDIA" = true ] && DRIVERS+=" nvidia nvidia_modeset nvidia_uvm nvidia_drm"
 
 {
-    echo 'uefi="yes"'
     echo 'hostonly="yes"'
     echo 'compress="zstd"'
     echo 'add_dracutmodules+=" plymouth "'
@@ -421,7 +423,7 @@ sudo find /boot/EFI/Linux -type f -name '*.efi' -delete 2>/dev/null || true
 sync
 
 KERNELS=$(ls /usr/lib/modules | wc -l)
-REQUIRED_MB=$((KERNELS * 180))
+REQUIRED_MB=$((KERNELS * 250))
 AVAILABLE_MB=$(df -BM --output=avail /boot | tail -1 | tr -dc '0-9')
 
 if [ "$AVAILABLE_MB" -lt "$REQUIRED_MB" ]; then
@@ -435,11 +437,16 @@ sudo kernel-install add-all 2>&1 | grep -vE "SBAT|Wrote unsigned|does not contai
 
 UKI_COUNT=$(sudo find /boot/EFI/Linux -maxdepth 1 -type f -name '*.efi' 2>/dev/null | wc -l)
 
-if [ "$UKI_COUNT" -eq "$KERNELS" ]; then
-    echo "  · Migração concluída ($UKI_COUNT UKIs)"
-else
+if [ "$UKI_COUNT" -ne "$KERNELS" ]; then
     echo -e "${RED}! Esperados $KERNELS UKIs, encontrados $UKI_COUNT${NC}"
     exit 1
+fi
+
+echo "  · Migração concluída ($UKI_COUNT UKIs)"
+
+FIRST_UKI=$(sudo find /boot/EFI/Linux -maxdepth 1 -type f -name '*.efi' 2>/dev/null | head -1)
+if [ -n "$FIRST_UKI" ] && ! sudo objdump -s -j .cmdline "$FIRST_UKI" 2>/dev/null | grep -q "quiet"; then
+    echo -e "${RED}! Aviso: cmdline pode não ter sido embutida corretamente${NC}"
 fi
 
 echo -e "\n${BLUE}» systemd-resolved${NC}"
