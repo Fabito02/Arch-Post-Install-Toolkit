@@ -218,8 +218,9 @@ cat << 'EOF' > "$HOME/.config/ghostty/styles.css"
 /* Suporte ao tema tinted da extensão GNOME ChromaLeon */
 @import url("/home/fabito02/.config/gtk-4.0/custom-accent.css");
 
-window{
-    background: @view_bg_color;
+window {
+    background: mix(@view_bg_color, transparent, 0.26);
+    backdrop-filter: blur(20px);
 }
 
 revealer.raised.top-bar {
@@ -227,10 +228,12 @@ revealer.raised.top-bar {
     border: none;
 }
 
-scrolledwindow > widget > tabgrid,
+toolbarview > revealer,
+windowhandle,
+toolbarview,
 toolbarview > overlay,
-windowhandle {
-    background-color: @view_bg_color;
+tabthumbnail > box > overlay > overlay {
+    background-color: transparent;
 }
 EOF
 
