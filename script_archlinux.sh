@@ -348,7 +348,29 @@ polkit.addRule(function(action, subject) {
 EOF
 
 echo -e "\n${BLUE}» ZRAM${NC}"
-echo -e "[zram0]\nzram-size = ram\ncompression-algorithm = zstd" | sudo tee /etc/systemd/zram-generator.conf > /dev/null
+cat << 'EOF' | sudo tee /etc/systemd/zram-generator.conf > /dev/null
+[zram0]
+zram-size = ram
+compression-algorithm = zstd
+swap-priority = 100
+EOF
+
+echo -e "\n${BLUE}» Swapfile no Btrfs (NVMe para Hibernação)${NC}"
+if [ ! -f /swapfile ]; then
+    echo "  · Criando /swapfile (20GB, NoCoW)..."
+    sudo truncate -s 0 /swapfile
+    sudo chattr +C /swapfile
+    sudo fallocate -l 20G /swapfile
+    sudo chmod 600 /swapfile
+    sudo mkswap /swapfile
+fi
+
+if ! grep -q "^/swapfile" /etc/fstab; then
+    echo "  · Registrando /swapfile no /etc/fstab"
+    echo "/swapfile none swap defaults,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
+fi
+
+sudo swapon /swapfile
 
 if [ -n "$UV_VAL" ]; then
     echo -e "\n${BLUE}» Undervolt${NC}"
