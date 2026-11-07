@@ -11,26 +11,39 @@ PAMAC_RULE_PATH="/etc/polkit-1/rules.d/99-pamac.rules"
 TEMPLATE_DIR=$(xdg-user-dir TEMPLATES)
 
 OPT_NVIDIA=false
+OPT_AMD_CPU=false
 OPT_INTEL=false
 OPT_UNDERVOLT_INTEL=false
 OPT_ACER=false
 OPT_LOW_RES=false
 OPT_EDID=false
+OPT_SWAP=false
+OPT_HIBERNATION=false
 
 help() {
     echo -e "${BLUE}» Uso do script pós-instalação Arch Linux${NC}"
     echo
     echo "  -n,  --nvidia             Instala drivers proprietários NVIDIA"
+    echo "  -am, --amd-cpu            Aplica configurações para CPUs AMD"
     echo "  -i,  --intel              Aplica configurações para CPUs Intel"
     echo "  -uv, --undervolt-intel    Aplica undervolt em CPUs Intel"
     echo "  -a,  --acer               Aplica configurações e instala dependências para dispositivos Acer"
     echo "  -lr, --low-res            Ajusta cursor e UI para telas menores"
     echo "  -e,  --edid               Aplica EDID customizado via cmdline do kernel"
+    echo "  -s,  --swap               Configura arquivo de Swap"
+    echo "  -hb, --hibernation        Ativa suporte a hibernação"
     echo "  -h,  --help               Exibe esta ajuda"
     echo
-    echo "  Exemplo: ./script.sh -n -i -lr -e"
+    echo "  Exemplo: ./script.sh -n -am -s -hb"
     exit 0
 }
+
+DETECTED_CPU=""
+if grep -q "AuthenticAMD" /proc/cpuinfo; then
+    DETECTED_CPU="amd"
+elif grep -q "GenuineIntel" /proc/cpuinfo; then
+    DETECTED_CPU="intel"
+fi
 
 if [ "$#" -eq 0 ]; then
     sleep 0.2
@@ -43,11 +56,27 @@ if [ "$#" -eq 0 ]; then
     read -p "  · Drivers proprietários NVIDIA? (s/N): " resp
     [[ "$resp" =~ ^[SsYy]$ ]] && OPT_NVIDIA=true
 
-    read -p "  · Configurações para CPU Intel? (s/N): " resp
-    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_INTEL=true
+    if [ "$DETECTED_CPU" = "amd" ]; then
+        read -p "  · Configurações para CPU AMD? (s/N): " resp
+        [[ "$resp" =~ ^[SsYy]$ ]] && OPT_AMD_CPU=true
+    elif [ "$DETECTED_CPU" = "intel" ]; then
+        read -p "  · Configurações para CPU Intel? (s/N): " resp
+        [[ "$resp" =~ ^[SsYy]$ ]] && OPT_INTEL=true
 
-    read -p "  · Undervolt para CPU Intel? (s/N): " resp
-    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_UNDERVOLT_INTEL=true
+        read -p "  · Undervolt para CPU Intel? (s/N): " resp
+        [[ "$resp" =~ ^[SsYy]$ ]] && OPT_UNDERVOLT_INTEL=true
+    else
+        read -p "  · Configurações para CPU AMD? (s/N): " resp
+        [[ "$resp" =~ ^[SsYy]$ ]] && OPT_AMD_CPU=true
+
+        read -p "  · Configurações para CPU Intel? (s/N): " resp
+        [[ "$resp" =~ ^[SsYy]$ ]] && OPT_INTEL=true
+
+        if [ "$OPT_INTEL" = true ]; then
+            read -p "  · Undervolt para CPU Intel? (s/N): " resp
+            [[ "$resp" =~ ^[SsYy]$ ]] && OPT_UNDERVOLT_INTEL=true
+        fi
+    fi
 
     read -p "  · Ajustes para dispositivos Acer? (s/N): " resp
     [[ "$resp" =~ ^[SsYy]$ ]] && OPT_ACER=true
@@ -58,16 +87,25 @@ if [ "$#" -eq 0 ]; then
     read -p "  · Aplicar EDID customizado? (s/N): " resp
     [[ "$resp" =~ ^[SsYy]$ ]] && OPT_EDID=true
 
+    read -p "  · Configurar arquivo de Swap? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_SWAP=true
+
+    read -p "  · Ativar suporte a hibernação? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_HIBERNATION=true
+
     echo
 else
     while [[ "$#" -gt 0 ]]; do
         case $1 in
             -n|--nvidia) OPT_NVIDIA=true ;;
+            -am|--amd-cpu) OPT_AMD_CPU=true ;;
             -i|--intel) OPT_INTEL=true ;;
             -uv|--undervolt-intel) OPT_UNDERVOLT_INTEL=true ;;
             -a|--acer) OPT_ACER=true ;;
             -lr|--low-res) OPT_LOW_RES=true ;;
             -e|--edid) OPT_EDID=true ;;
+            -s|--swap) OPT_SWAP=true ;;
+            -hb|--hibernation) OPT_HIBERNATION=true ;;
             -h|--help) help ;;
             *) echo -e "${RED}! Parâmetro desconhecido: $1${NC}"; exit 1 ;;
         esac
@@ -111,6 +149,17 @@ if [ "$OPT_UNDERVOLT_INTEL" = true ]; then
     fi
 fi
 
+SWAP_VAL=""
+if [ "$OPT_SWAP" = true ]; then
+    echo -e "\n${BLUE}» Swapfile${NC}"
+    read -t 20 -p "  · Tamanho em GB (ex: 20), Enter para cancelar: " SWAP_VAL || SWAP_VAL=""
+
+    if [[ ! "$SWAP_VAL" =~ ^[0-9]+$ ]]; then
+        echo "  · Valor inválido, criação do arquivo de Swap cancelada."
+        SWAP_VAL=""
+    fi
+fi
+
 EDID_SRC=""
 if [ "$OPT_EDID" = true ]; then
     echo -e "\n${BLUE}» EDID customizado${NC}"
@@ -126,14 +175,14 @@ rm -rf "$CACHE"
 mkdir -p "$CACHE"
 
 PKGS_PACMAN=(
-    base-devel dracut systemd-ukify pacman-contrib intel-media-driver adw-gtk-theme
+    base-devel dracut systemd-ukify pacman-contrib adw-gtk-theme
     discord btop steam gamemode mangohud ryujinx resources
     android-tools scrcpy faugus-launcher snes9x dolphin-emu
     qbittorrent impression flatpak firefoxpwa firefox telegram-desktop
     lact gparted dconf-editor gdm-settings zed ghostty ufw linux-zen
     linux-zen-headers noto-fonts-cjk noto-fonts-emoji paru zsh zsh-completions
-    switcheroo-control zsh-syntax-highlighting zsh-autosuggestions
-    npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
+    switcheroo-control zsh-syntax-highlighting zsh-autosuggestions zram-generator
+    npm ffmpegthumbnailer plymouth fastfetch tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git
     extension-manager refine supertuxkart libgda6 geary github-cli
     ghostty-nautilus gnome-boxes amberol mangojuice fractal newsflash
@@ -159,6 +208,10 @@ PKGS_AUR=(
 
 if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
     PKGS_PACMAN+=("${NVIDIA_PKGS[@]}")
+fi
+
+if [ "$OPT_INTEL" = true ]; then
+    PKGS_PACMAN+=(intel-media-driver)
 fi
 
 if [ "$OPT_UNDERVOLT_INTEL" = true ]; then
@@ -355,22 +408,51 @@ compression-algorithm = zstd
 swap-priority = 100
 EOF
 
-echo -e "\n${BLUE}» Swapfile no Btrfs (NVMe para Hibernação)${NC}"
-if [ ! -f /swapfile ]; then
-    echo "  · Criando /swapfile (20GB, NoCoW)..."
-    sudo truncate -s 0 /swapfile
-    sudo chattr +C /swapfile
-    sudo fallocate -l 20G /swapfile
-    sudo chmod 600 /swapfile
-    sudo mkswap /swapfile
+if [ -n "$SWAP_VAL" ]; then
+    echo -e "\n${BLUE}» Configurando Swap${NC}"
+    if grep -qw "/swapfile" /proc/swaps; then
+        echo "  · /swapfile já está em uso pelo sistema. Ignorando criação."
+    elif [ -f /swapfile ]; then
+        echo "  · /swapfile já existe no disco. Ignorando criação."
+    else
+        echo "  · Criando /swapfile (${SWAP_VAL}GB, NoCoW)..."
+        sudo swapoff /swapfile 2>/dev/null || true
+        sudo rm -f /swapfile
+
+        sudo touch /swapfile
+        sudo chattr +C /swapfile 2>/dev/null || true
+        sudo dd if=/dev/zero of=/swapfile bs=1M count=$((SWAP_VAL * 1024)) status=progress
+        sudo chmod 600 /swapfile
+        sudo mkswap -U clear /swapfile
+    fi
+
+    if ! grep -q "^/swapfile" /etc/fstab; then
+        echo "  · Registrando /swapfile no /etc/fstab"
+        echo "/swapfile none swap defaults,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
+    fi
+
+    sudo swapon --all 2>/dev/null || true
 fi
 
-if ! grep -q "^/swapfile" /etc/fstab; then
-    echo "  · Registrando /swapfile no /etc/fstab"
-    echo "/swapfile none swap defaults,pri=10 0 0" | sudo tee -a /etc/fstab > /dev/null
-fi
+if [ "$OPT_HIBERNATION" = true ]; then
+    echo -e "\n${BLUE}» Configuração da Hibernação${NC}"
 
-sudo swapon /swapfile
+    if [ ! -f /swapfile ]; then
+        echo -e "  ${RED}✘ Erro: /swapfile não encontrado. Hibernação requer Swapfile.${NC}"
+        exit 1
+    fi
+
+    echo "w /sys/power/image_size - - - - 0" | sudo tee /etc/tmpfiles.d/hibernation.conf > /dev/null
+    sudo systemd-tmpfiles --create /etc/tmpfiles.d/hibernation.conf > /dev/null 2>&1 || true
+
+    SWAP_UUID=$(findmnt -no UUID -T /swapfile 2>/dev/null || true)
+    SWAP_OFFSET=$(sudo btrfs inspect-internal map-swapfile -r /swapfile 2>/dev/null || true)
+
+    if [ -z "$SWAP_UUID" ] || [ -z "$SWAP_OFFSET" ]; then
+        echo -e "  ${RED}✘ Erro: UUID ou Offset não puderam ser identificados.${NC}"
+        exit 1
+    fi
+fi
 
 if [ -n "$UV_VAL" ]; then
     echo -e "\n${BLUE}» Undervolt${NC}"
@@ -392,13 +474,17 @@ sudo ufw allow 1714:1764/tcp > /dev/null 2>&1
 sudo ufw --force enable > /dev/null 2>&1
 
 echo "  · Configurando Otimização de VRAM (dmemcg-booster)"
-sudo systemctl enable --now dmemcg-booster.service
-systemctl --user enable --now dmemcg-booster.service
+sudo systemctl enable --now dmemcg-booster-system.service
+systemctl --user enable --now dmemcg-booster-user.service
 sudo systemctl enable --now gnome-vram-booster.service
 
 if [ "$OPT_NVIDIA" = true ] || pacman -Qs nvidia > /dev/null 2>&1; then
     echo "  · Ativando serviços de preservação de memória da NVIDIA"
     sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service > /dev/null 2>&1
+
+    sudo mkdir -p /etc/modprobe.d
+    echo "options nvidia NVreg_PreserveVideoMemoryAllocations=1" | sudo tee /etc/modprobe.d/nvidia-power-management.conf > /dev/null
+    echo "options nvidia_drm modeset=1" | sudo tee /etc/modprobe.d/nvidia.conf > /dev/null
 fi
 
 sudo sed -i 's/.*SystemMaxUse=.*/SystemMaxUse=100M/' /etc/systemd/journald.conf
@@ -423,7 +509,7 @@ else
     EDID_ITEM=""
 fi
 
-echo -e "\n${BLUE}» Bootloader (UKI via kernel-install + ukify + Dracut)${NC}"
+echo -e "\n${BLUE}» Bootloader${NC}"
 
 if pacman -Qs mkinitcpio > /dev/null; then
     echo "  · Removendo mkinitcpio"
@@ -438,7 +524,12 @@ sudo mkdir -p /etc/kernel /etc/dracut.conf.d
 
 CMDLINE="quiet splash"
 [ "$OPT_INTEL" = true ] && CMDLINE="intel_pstate=passive $CMDLINE"
+[ "$OPT_NVIDIA" = true ] && CMDLINE="$CMDLINE nvidia_drm.modeset=1"
 [ -n "$EDID_CMDLINE" ] && CMDLINE="$CMDLINE $EDID_CMDLINE"
+
+if [ "$OPT_HIBERNATION" = true ] && [ -n "$SWAP_UUID" ] && [ -n "$SWAP_OFFSET" ]; then
+    CMDLINE="$CMDLINE resume=UUID=$SWAP_UUID resume_offset=$SWAP_OFFSET"
+fi
 
 echo "$CMDLINE" | sudo tee /etc/kernel/cmdline > /dev/null
 
@@ -450,13 +541,20 @@ EOF
 
 DRIVERS=""
 [ "$OPT_INTEL" = true ] && DRIVERS+=" i915"
-[ "$OPT_NVIDIA" = true ] && DRIVERS+=" nvidia nvidia_modeset nvidia_uvm nvidia_drm"
+[ "$OPT_AMD_CPU" = true ] && DRIVERS+=" amdgpu"
 
 {
     echo 'hostonly="yes"'
     echo 'compress="zstd"'
-    echo 'add_dracutmodules+=" plymouth "'
+    if [ "$OPT_HIBERNATION" = true ]; then
+        echo 'add_dracutmodules+=" plymouth resume "'
+    else
+        echo 'add_dracutmodules+=" plymouth "'
+    fi
     [ -n "$DRIVERS" ] && echo "add_drivers+=\"${DRIVERS} \""
+    if [ "$OPT_NVIDIA" = true ]; then
+        echo 'omit_drivers+=" nvidia nvidia_drm nvidia_modeset nvidia_uvm "'
+    fi
     [ -n "$EDID_ITEM" ] && echo "install_items+=\"${EDID_ITEM}\""
 } | sudo tee /etc/dracut.conf.d/arch.conf > /dev/null
 
@@ -478,22 +576,26 @@ if [ "$AVAILABLE_MB" -lt "$REQUIRED_MB" ]; then
     exit 1
 fi
 
-echo "  · Gerando UKIs para $KERNELS kernel(s)"
+echo "  · Gerando imagens para $KERNELS kernel(s)"
 sudo kernel-install add-all 2>&1 | grep -vE "SBAT|Wrote unsigned|does not contain" || true
 
 UKI_COUNT=$(sudo find /boot/EFI/Linux -maxdepth 1 -type f -name '*.efi' 2>/dev/null | wc -l)
 
 if [ "$UKI_COUNT" -ne "$KERNELS" ]; then
-    echo -e "${RED}! Esperados $KERNELS UKIs, encontrados $UKI_COUNT${NC}"
+    echo -e "${RED}! Esperados $KERNELS, encontrados $UKI_COUNT${NC}"
     exit 1
 fi
 
-echo "  · Migração concluída ($UKI_COUNT UKIs)"
+echo "  · Processo concluído ($UKI_COUNT gerados)"
 
 FIRST_UKI=$(sudo find /boot/EFI/Linux -maxdepth 1 -type f -name '*.efi' 2>/dev/null | head -1)
 if [ -n "$FIRST_UKI" ] && ! sudo objdump -s -j .cmdline "$FIRST_UKI" 2>/dev/null | grep -q "quiet"; then
     echo -e "${RED}! Aviso: cmdline pode não ter sido embutida corretamente${NC}"
 fi
+
+echo -e "\n${BLUE}» Systemd-boot Timeout${NC}"
+sudo sh -c 'mkdir -p /boot/loader && touch /boot/loader/loader.conf && sed -i -E "/^#?\s*timeout/d" /boot/loader/loader.conf && echo "timeout 0" >> /boot/loader/loader.conf'
+echo "  · Timeout definido para 0 em /boot/loader/loader.conf"
 
 echo -e "\n${BLUE}» systemd-resolved${NC}"
 sudo mkdir -p /etc/NetworkManager/conf.d
