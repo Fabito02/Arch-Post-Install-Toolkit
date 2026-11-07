@@ -227,7 +227,7 @@ EOF
 
 cat << 'EOF' > "$HOME/.config/ghostty/styles.css"
 /* Suporte ao tema tinted da extensão GNOME ChromaLeon */
-@import url("/home/fabito02/.config/gtk-4.0/custom-accent.css");
+@import url("file://~/.config/gtk-4.0/custom-accent.css");
 
 window {
     background: mix(@view_bg_color, transparent, 0.1);
@@ -370,7 +370,8 @@ sudo ufw allow 1714:1764/tcp > /dev/null 2>&1
 sudo ufw --force enable > /dev/null 2>&1
 
 echo "  · Configurando Otimização de VRAM (dmemcg-booster)"
-sudo systemctl enable --now dmemcg-booster-system
+sudo systemctl enable --now dmemcg-booster.service
+systemctl --user enable --now dmemcg-booster.service
 sudo systemctl enable --now gnome-vram-booster.service
 
 if [ "$OPT_NVIDIA" = true ] || pacman -Qs nvidia > /dev/null 2>&1; then
