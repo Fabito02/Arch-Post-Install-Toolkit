@@ -13,6 +13,7 @@ TEMPLATE_DIR=$(xdg-user-dir TEMPLATES)
 OPT_NVIDIA=false
 OPT_INTEL=false
 OPT_UNDERVOLT_INTEL=false
+OPT_ACER=false
 OPT_LOW_RES=false
 OPT_EDID=false
 
@@ -22,6 +23,7 @@ help() {
     echo "  -n,  --nvidia             Instala drivers proprietários NVIDIA"
     echo "  -i,  --intel              Aplica configurações para CPUs Intel"
     echo "  -uv, --undervolt-intel    Aplica undervolt em CPUs Intel"
+    echo "  -a,  --acer               Aplica configurações e instala dependências para dispositivos Acer"
     echo "  -lr, --low-res            Ajusta cursor e UI para telas menores"
     echo "  -e,  --edid               Aplica EDID customizado via cmdline do kernel"
     echo "  -h,  --help               Exibe esta ajuda"
@@ -47,6 +49,9 @@ if [ "$#" -eq 0 ]; then
     read -p "  · Undervolt para CPU Intel? (s/N): " resp
     [[ "$resp" =~ ^[SsYy]$ ]] && OPT_UNDERVOLT_INTEL=true
 
+    read -p "  · Ajustes para dispositivos Acer? (s/N): " resp
+    [[ "$resp" =~ ^[SsYy]$ ]] && OPT_ACER=true
+
     read -p "  · Cursor e UI para telas menores? (s/N): " resp
     [[ "$resp" =~ ^[SsYy]$ ]] && OPT_LOW_RES=true
 
@@ -60,6 +65,7 @@ else
             -n|--nvidia) OPT_NVIDIA=true ;;
             -i|--intel) OPT_INTEL=true ;;
             -uv|--undervolt-intel) OPT_UNDERVOLT_INTEL=true ;;
+            -a|--acer) OPT_ACER=true ;;
             -lr|--low-res) OPT_LOW_RES=true ;;
             -e|--edid) OPT_EDID=true ;;
             -h|--help) help ;;
@@ -81,13 +87,13 @@ trap 'kill $(jobs -p)' EXIT
 NVIDIA_PKGS=()
 if [ "$OPT_NVIDIA" = true ]; then
     echo -e "\n${BLUE}» Driver NVIDIA${NC}"
-    echo "  1) Atual   (nvidia-dkms)"
+    echo "  1) Atual   (nvidia-open-dkms)"
     echo "  2) Legado  (nvidia-580xx-dkms)"
     read -p "  · Versão (1/2): " nv_escolha
 
     case "$nv_escolha" in
-        1) NVIDIA_PKGS=(nvidia-dkms nvidia-utils lib32-nvidia-utils nvidia-settings) ;;
-        2) NVIDIA_PKGS=(nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-580xx-settings) ;;
+        1) NVIDIA_PKGS=(nvidia-open-dkms nvidia-utils lib32-nvidia-utils nvidia-settings nvidia-prime) ;;
+        2) NVIDIA_PKGS=(nvidia-580xx-dkms nvidia-580xx-utils lib32-nvidia-580xx-utils nvidia-580xx-settings nvidia-prime) ;;
         *) echo "  · Opção inválida, pulando." ;;
     esac
 fi
@@ -130,7 +136,7 @@ PKGS_PACMAN=(
     npm ffmpegthumbnailer plymouth fastfetch zram-generator tuned tuned-ppd
     bibata-cursor-theme pamac bazaar fuse zen-browser chromium lsfg-vk eden-git
     extension-manager refine supertuxkart libgda6 geary github-cli
-    ghostty-nautilus valent-git gnome-boxes amberol mangojuice fractal newsflash
+    ghostty-nautilus gnome-boxes amberol mangojuice fractal newsflash
     cups cups-pdf cups-filters rmg
 )
 
@@ -147,8 +153,8 @@ PKGS_FLATPAK=(
 )
 
 PKGS_AUR=(
-    gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git mixtapes-git pcsx2-latest-bin
-    pacman-hook-kernel-install
+    gnome-shell-extension-valent-git cemu-bin morewaita-icon-theme-git pcsx2-latest-bin
+    pacman-hook-kernel-install dmemcg-booster gnome-vram-booster
 )
 
 if [ ${#NVIDIA_PKGS[@]} -gt 0 ]; then
@@ -157,6 +163,10 @@ fi
 
 if [ "$OPT_UNDERVOLT_INTEL" = true ]; then
     PKGS_PACMAN+=(intel-undervolt)
+fi
+
+if [ "$OPT_ACER" = true ]; then
+    PKGS_AUR+=(acer-wmi-battery-dkms linuwu-sense-dkms-git)
 fi
 
 echo -e "\n${BLUE}» Chaotic-AUR${NC}"
@@ -200,12 +210,13 @@ fi
 
 echo -e "\n${BLUE}» Ghostty${NC}"
 mkdir -p "$HOME/.config/ghostty"
-cat << 'EOF' > "$HOME/.config/ghostty/config"
+cat << 'EOF' > "$HOME/.config/ghostty/config.ghostty"
 theme = light:Adwaita,dark:Adwaita Dark
-font-size = 11
+font-size = 10.6
+font-family = Adwaita Mono Regular
 window-padding-x = 8
-window-height = 24
-window-width = 70
+window-height = 28
+window-width = 84
 gtk-titlebar-style = tabs
 gtk-wide-tabs = false
 gtk-custom-css = ~/.config/ghostty/styles.css
@@ -219,7 +230,7 @@ cat << 'EOF' > "$HOME/.config/ghostty/styles.css"
 @import url("/home/fabito02/.config/gtk-4.0/custom-accent.css");
 
 window {
-    background: mix(@view_bg_color, transparent, 0.26);
+    background: mix(@view_bg_color, transparent, 0.1);
     backdrop-filter: blur(20px);
 }
 
@@ -357,6 +368,15 @@ sudo systemctl enable --now ufw.service > /dev/null 2>&1
 sudo ufw allow 1714:1764/udp > /dev/null 2>&1
 sudo ufw allow 1714:1764/tcp > /dev/null 2>&1
 sudo ufw --force enable > /dev/null 2>&1
+
+echo "  · Configurando Otimização de VRAM (dmemcg-booster)"
+sudo systemctl enable --now dmemcg-booster-system
+sudo systemctl enable --now gnome-vram-booster.service
+
+if [ "$OPT_NVIDIA" = true ] || pacman -Qs nvidia > /dev/null 2>&1; then
+    echo "  · Ativando serviços de preservação de memória da NVIDIA"
+    sudo systemctl enable nvidia-suspend.service nvidia-resume.service nvidia-hibernate.service > /dev/null 2>&1
+fi
 
 sudo sed -i 's/.*SystemMaxUse=.*/SystemMaxUse=100M/' /etc/systemd/journald.conf
 sudo systemctl restart systemd-journald
