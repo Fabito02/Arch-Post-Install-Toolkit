@@ -16,6 +16,7 @@ O **Arch Post-Install Toolkit** é uma ferramenta de automação projetada para 
 
 * Arch Linux
 * systemd-boot
+* Btrfs
 * GNOME
 * Acesso à internet para instalação de pacotes
 
